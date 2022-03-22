@@ -17,6 +17,26 @@ from .collection_json import CollectionJSON
 
 
 class Collector:
+    """Abstract class. The Collector is an entry-point for gathering data from awx to cloud.
+    Abstract and following methods has to be implemented:
+    - _package_class() - reference to your implementation of Package
+    - _collection_json_class() - optional, if class inherited from CollectionJSON is used
+    - _collection_csv_class() - optional, if class inherited from CollectionCSV is used
+
+    There are several params:
+    - collection_type:
+      - manual/scheduled - data are gathered and shipped, local timestamps about gathering are updated
+      - dry-run - data are gathered, but not shipped, tarballs from /tmp not deleted (testing mode)
+    - collector_module: module with functions with decorator `@register` - they define what data are collected
+      - collector functions are wrapped by kind of Collection object
+      - Collections are grouped by Package, and Packages are creating tarballs and shipping them.
+    - logger: logging.logger
+
+    Collector is an abstract class, example of implementation is in tests/classes
+
+    Data are gathered maximally 4 weeks ago and can be set to less (see gather(since, until,..))
+    """
+
     MANUAL_COLLECTION = 'manual'
     DRY_RUN = 'dry-run'
     SCHEDULED_COLLECTION = 'scheduled'
@@ -62,7 +82,10 @@ class Collector:
     # Public methods ----------------------------
     #
     def config_present(self):
-        """ret: Boolean"""
+        """
+        Checks if collector_module contains 'config' method (required)
+        :return: bool
+        """
 
         return self.collections.get('config') is not None
 
@@ -78,10 +101,18 @@ class Collector:
         pass
 
     def gather(self, dest=None, subset=None, since=None, until=None):
+        """Entry point for gathering
+
+        :param dest: (default: /tmp/awx-analytics-*) - directory for temp files
+        :param subset: (list) collector_module's function names if only subset is required (typically tests)
+        :param since: (datetime) - low threshold of data changes (max. and default - 4 weeks ago)
+        :param until: (datetime) - high threshold of data changes (defaults to now)
+        :return: None or list of paths to tarballs (.tar.gz)
+        """
         if not self.is_enabled():
             return None
 
-        with self.pg_advisory_lock('gather_analytics_lock', wait=False) as acquired:
+        with self._pg_advisory_lock('gather_analytics_lock', wait=False) as acquired:
             if not acquired:
                 self.logger.log(self.log_level, "Not gathering analytics, another task holds lock")
                 return None
@@ -107,6 +138,7 @@ class Collector:
         return self.collection_type == self.DRY_RUN
 
     def is_enabled(self):
+        """Checks for license and shipping data (like credentials)"""
         if not self._is_valid_license():
             self.logger.log(self.log_level, "Invalid License provided, or No License Provided")
             return False
@@ -117,6 +149,7 @@ class Collector:
         return True
 
     def is_shipping_enabled(self):
+        """Shipping is enabled in manual/scheduled mode"""
         return not self.is_dry_run()
 
     def last_gathered_entry_for(self, key):
@@ -189,14 +222,20 @@ class Collector:
         self.last_gather = last_gather
 
     def _find_available_package(self, group, key, requested_size=None):
-        """
-        :param group - finds or creates package for group strategy if not None
-        :param requested_size - returns existing package, if there is enough free size
+        """Checks if there is a Package available for collection.
+        Package can't contain collection with the same key and has to have enough free space
+
+        :param group: finds or creates package for group strategy if not None
+        :param requested_size: returns existing package, if there is enough free size
+
+        :return: Package
         """
         available_package = None
 
         for package in (self.packages.get(group) or []):
-            if package.has_free_space(requested_size) and not package.is_key_used(key):
+            if package.has_free_space(requested_size) and \
+                    not package.is_key_used(key) and \
+                    not package.processed:
                 available_package = package
                 break
 
@@ -212,7 +251,7 @@ class Collector:
 
         self._init_tmp_dir(tmp_root_dir)
 
-        self._load_last_gathered_entries()
+        self.last_gathered_entries = self._load_last_gathered_entries()
 
         self._calculate_collection_interval(since, until)
 
@@ -221,6 +260,9 @@ class Collector:
         self._create_collections(collectors_subset)
 
     def _gather_config(self):
+        """Config is special collection, it's added to each Package
+        TODO: add "always" flag to @register decorator
+        """
         if not self.config_present():
             self.logger.log(self.log_level, "'config' collector data is missing")
             return False
@@ -229,12 +271,18 @@ class Collector:
             return True
 
     def _gather_json_collections(self):
+        """JSON collections are simpler, they're just gathered and added to the Package"""
         for collection in self.collections[Collection.COLLECTION_TYPE_JSON]:
             collection.gather(self._package_class().max_data_size())
 
             self._add_collection_to_package(collection)
 
     def _gather_csv_collections(self):
+        """CSV collections can contain sub-collections (big db tables).
+        In that case they are shipped immediately, because:
+         1) the temp file needs to be deleted to ensure enough disk space
+         2) Collections with slicing function can produce duplicate filename
+        """
         for collection in self.collections[Collection.COLLECTION_TYPE_CSV]:
             collection.gather(self._package_class().max_data_size())
 
@@ -250,6 +298,7 @@ class Collector:
                 self._add_collection_to_package(collection)
 
     def _add_collection_to_package(self, collection):
+        """Adds collection to package and ships it if collection has slicing"""
         package = self._find_available_package(collection.shipping_group, collection.key,
                                                collection.data_size())
         package.add_collection(collection)
@@ -257,7 +306,8 @@ class Collector:
             self._process_package(package)
 
     @contextlib.contextmanager
-    def pg_advisory_lock(self, key, wait=False):
+    def _pg_advisory_lock(self, key, wait=False):
+        """Postgres db lock"""
         connection = self.db_connection()
 
         if connection is None:
@@ -291,7 +341,7 @@ class Collector:
         package has to be sent immediately after gathering data
         :see Collection.ship_immediately()
 
-        :param package - Package
+        :param package: Package
         """
         if not package.processed:
             package.make_tgz()
@@ -301,12 +351,14 @@ class Collector:
             package.processed = True
 
     def _gather_finalize(self):
+        """Persisting timestamps (manual/schedule mode only)"""
         if self.is_shipping_enabled():
             self._update_last_gathered_entries()
 
             self._save_last_gather()
 
     def _gather_cleanup(self):
+        """Deleting temp files"""
         shutil.rmtree(self.tmp_dir, ignore_errors=True)  # clean up individual artifact files
         if not self.is_dry_run():
             self.delete_tarballs()
@@ -318,18 +370,33 @@ class Collector:
 
     @abstractmethod
     def _is_shipping_configured(self):
+        """Custom check for shipping availability should contain:
+        1) Is Insights for Ansible Automation Platform enabled?
+        2) Is URL and credentials present?
+        :return: bool
+        """
         pass
 
     @abstractmethod
     def _is_valid_license(self):
+        """License check
+        :return: bool
+        """
         pass
 
     @abstractmethod
     def _last_gathering(self):
+        """Returns timestamp of last successful gathering
+        Complement to _save_last_gathering()
+        """
         pass
 
     @abstractmethod
     def _load_last_gathered_entries(self):
+        """Loads persisted timestamps named by keys from collector_module
+        Complement to the _save_last_gathered_entries()
+        :return dict
+        """
         pass
 
     def _update_last_gathered_entries(self):
@@ -342,18 +409,25 @@ class Collector:
 
         self.last_gathered_entries.update(last_gathered_updates)
 
-        self._save_last_gathered_entries()
+        self._save_last_gathered_entries(self.last_gathered_entries)
 
     @abstractmethod
-    def _save_last_gathered_entries(self):
+    def _save_last_gathered_entries(self, last_gathered_entries):
+        """Saves dictionary with timestamps to persistent storage
+        Complement to the _load_last_gathered_entries()
+        :param last_gathered_entries: dict
+        """
         pass
 
     @abstractmethod
     def _save_last_gather(self):
+        """Persists timestamp of last successful gathering
+        Complement to _last_gathering()
+        """
         pass
 
     def _create_collections(self, subset=None):
-        """
+        """Creates Collections from decorated functions (by @register) from self.collector_module
         :param subset - array of function names which should be used.
                       - if None, all registered functions will be used
 
@@ -401,14 +475,17 @@ class Collector:
 
     @staticmethod
     def _package_class():
+        """Has to be redefined by your Package implementation"""
         return Package
 
     @staticmethod
     def _collection_json_class():
+        """Can be redefined by your CollectionJSON implementation"""
         return CollectionJSON
 
     @staticmethod
     def _collection_csv_class():
+        """Can be redefined by your CollectionCSV implementation"""
         return CollectionCSV
 
     def _reset_collections_and_packages(self):

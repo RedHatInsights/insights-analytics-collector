@@ -6,6 +6,10 @@ from .collection import Collection
 
 
 class CollectionJSON(Collection):
+    """Collection for JSON-outputting collecting functions (decorated by @register)
+    Collecting functions returns dict() convertable to JSON
+    - result of gather() is stored in self.data
+    """
     def __init__(self, collector, func):
         super().__init__(collector, func)
         self.data = None  # gathered data

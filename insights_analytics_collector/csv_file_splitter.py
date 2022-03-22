@@ -3,7 +3,12 @@ import os
 from .package import Package
 
 
-class FileSplitter(io.StringIO):
+class CsvFileSplitter(io.StringIO):
+    """Helper for writing big data into multiple files splitted by size.
+    Expects data written in CSV format (first line is header)
+    Could be called from function decorated by @register (see Collector).
+    :param max_file_size: determined by decorated function's attribute "max_data_size"
+    """
     def __init__(self, filespec=None, max_file_size=Package.MAX_DATA_SIZE, *args, **kwargs):
         self.max_file_size = max_file_size
         self.filespec = filespec
@@ -14,6 +19,7 @@ class FileSplitter(io.StringIO):
         self.cycle_file()
 
     def cycle_file(self):
+        """Closes current file, opens new one and writes CSV header"""
         if self.currentfile:
             self.currentfile.close()
         self.counter = 0
@@ -23,8 +29,8 @@ class FileSplitter(io.StringIO):
         if self.header:
             self.counter += self.currentfile.write('{}\n'.format(self.header))
 
-
     def file_list(self):
+        """Returns list of written files"""
         self.currentfile.close()
         # Check for an empty dump
         if len(self.header) + 1 == self.counter:
@@ -39,6 +45,7 @@ class FileSplitter(io.StringIO):
         return self.files
 
     def write(self, s):
+        """Writes to file and creates new one if file exceedes threshold"""
         if not self.header:
             self.header = s[: s.index('\n')]
         self.counter += self.currentfile.write(s)

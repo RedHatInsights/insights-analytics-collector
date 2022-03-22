@@ -1,6 +1,6 @@
 from .collector import Collector
 from .package import Package
-from .file_splitter import FileSplitter
+from .csv_file_splitter import CsvFileSplitter
 from .decorators import register, slicing
 
-__all__ = ['Collector', 'Package', 'FileSplitter', 'register', 'slicing']
+__all__ = ['Collector', 'Package', 'CsvFileSplitter', 'register', 'slicing']

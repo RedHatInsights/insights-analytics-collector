@@ -3,6 +3,9 @@ from django.utils.timezone import now, timedelta
 
 
 class Collection:
+    """Wrapper for gathering function from Collector.collector_module
+    Functions decorated with @register are wrapped by kind of this object.
+    """
     COLLECTION_TYPE_CONFIG = 'config'
     COLLECTION_TYPE_JSON = 'json'
     COLLECTION_TYPE_CSV = 'csv'

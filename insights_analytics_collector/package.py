@@ -10,14 +10,19 @@ import tarfile
 
 class Package:
     """
+    Abstract class
     Package serves for managing one tarball and shipping it to the cloud.
+    Abstract methods has to be implemented, as well as:
+    - CERT_PATH - path to auth certificate (for POST request to cloud), if not development mode
+    - PAYLOAD_CONTENT_TYPE - registered in ingress-service in cloud
+    - MAX_DATA_SIZE - defaults to 200MB (upload limit is 100MB, so it expects 50% compression rate)
     """
 
     CERT_PATH = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
     PAYLOAD_CONTENT_TYPE = "application/vnd.redhat.TODO+tgz"  # i.e. "application/vnd.redhat.tower.tower_payload+tgz"
 
     SHIPPING_AUTH_USERPASS = 'user-pass'
-    SHIPPING_AUTH_IDENTITY = 'x-rh-identity'
+    SHIPPING_AUTH_IDENTITY = 'x-rh-identity'  # Development mode only
 
     '''
     Some tables can be *very* large, and we have a 100MB upload limit.
@@ -55,6 +60,7 @@ class Package:
 
     @abstractmethod
     def get_ingress_url(self):
+        """URL of cloud's upload URL"""
         pass
 
     def has_free_space(self, requested_size):
@@ -184,17 +190,30 @@ class Package:
 
     @abstractmethod
     def _get_http_request_headers(self):
+        """Optional HTTP headers for POST request to get_ingress_url() URL
+        :return: dict()
+        """
         pass
 
     @abstractmethod
     def _get_rh_user(self):
+        """Auth: username for HTTP POST request to cloud.
+                 shipping_auth_mode() must return SHIPPING_AUTH_USERPASS (default)
+        """
         pass
 
     @abstractmethod
     def _get_rh_password(self):
+        """Auth: password for HTTP POST request to cloud.
+                 shipping_auth_mode() must return SHIPPING_AUTH_USERPASS (default)
+        """
+
         pass
 
     def _get_x_rh_identity(self):
+        """Auth: x-rh-identity header for HTTP POST request to cloud
+        Optional, if shipping_auth_mode() redefined to SHIPPING_AUTH_IDENTITY
+        """
         identity = {"identity": {"type": "User", "account_number": "0000001", "user": {"is_org_admin": True},
                                  "internal": {"org_id": "000001"}}}
         identity = base64.b64encode(json.dumps(identity).encode('utf8'))

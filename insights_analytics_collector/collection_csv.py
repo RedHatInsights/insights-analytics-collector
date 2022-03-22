@@ -4,6 +4,12 @@ from .collection import Collection
 
 
 class CollectionCSV(Collection):
+    """Collection for CSV-outputting collecting functions (decorated by @register)
+    Collecting functions can return 0+ paths to tmpfiles
+    - result of gather() is stored in self.data_filepath
+    - In case of multiple files, object clones itself to sub-collections,
+      one for each file
+    """
     def __init__(self, collector, fnc_collecting):
         super().__init__(collector, fnc_collecting)
         # Large db tables handled by fnc_collecting can be split to multiple files,
