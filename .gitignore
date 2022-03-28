@@ -5,8 +5,15 @@ __pycache__/
 *$py.class
 
 # Environments
+.env
 .venv
 venv/
 
+# Distribution / packaging
 *.egg-info
 *.egg
+.eggs/
+build/
+dist/
+eggs/
+rpm-build/
