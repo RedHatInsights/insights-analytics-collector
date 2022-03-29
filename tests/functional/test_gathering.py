@@ -6,6 +6,8 @@ import logging
 import pytest
 import tarfile
 
+from django.conf import settings
+settings.configure(USE_TZ=True)
 
 @pytest.fixture
 def collector(mocker):

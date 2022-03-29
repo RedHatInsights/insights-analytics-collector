@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 # We use the README as the long_description
 readme_path = os.path.join(os.path.dirname(__file__), "README.md")
@@ -30,5 +30,5 @@ setup(
     packages=find_packages(),
     include_package_data=False,
     install_requires=['django', 'requests'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'pytest-mock']
 )
