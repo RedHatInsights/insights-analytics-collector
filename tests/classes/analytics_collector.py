@@ -21,9 +21,9 @@ class AnalyticsCollector(Collector):
         return None
 
     def _load_last_gathered_entries(self):
-        self.last_gathered_entries = {}
+        return {}
 
-    def _save_last_gathered_entries(self):
+    def _save_last_gathered_entries(self, last_gathered_entries):
         return None
 
     def _save_last_gather(self):

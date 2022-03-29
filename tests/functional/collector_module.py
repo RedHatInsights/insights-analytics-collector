@@ -1,5 +1,5 @@
 import os
-from insights_analytics_collector import FileSplitter, register
+from insights_analytics_collector import CsvFileSplitter, register
 
 
 @register('config', '1.0', description='CONFIG', config=True)
@@ -50,7 +50,7 @@ def json_collection_2(**kwargs):
 
 def _simple_csv(full_path, file_name, files_cnt, max_data_size):
     file_path = _get_file_path(full_path, file_name)
-    file = FileSplitter(filespec=file_path, max_file_size=max_data_size)
+    file = CsvFileSplitter(filespec=file_path, max_file_size=max_data_size)
     header = "Col1,Col2\n"
     line = "1234,6789\n"
 
