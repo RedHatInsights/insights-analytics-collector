@@ -101,8 +101,11 @@ class Collection:
             return
 
         if self.gathering_successful:
-            previous = updates_dict['keys'].get(self.key)
-            updates_dict['keys'][self.key] = max(previous, self.until)
+            previous = updates_dict['keys'].get(self.key, None)
+            if previous is None:
+                updates_dict['keys'][self.key] = self.until
+            else:
+                updates_dict['keys'][self.key] = max(previous, self.until)
         else:
             updates_dict['locked'].add(self.key)
 
