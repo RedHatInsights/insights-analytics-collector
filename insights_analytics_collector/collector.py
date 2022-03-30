@@ -405,7 +405,7 @@ class Collector:
 
         for _, packages in self.packages.items():
             for package in packages:
-                package.update_last_gathered_entries(last_gathered_updates['keys'])
+                package.update_last_gathered_entries(last_gathered_updates)
 
         self.last_gathered_entries.update(last_gathered_updates)
 
