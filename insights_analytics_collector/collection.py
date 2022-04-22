@@ -24,8 +24,8 @@ class Collection:
 
         self.data_type = fnc_collecting.__insights_analytics_type__
         self.filename = f'{self.key}.{self.data_type}'
-        self.since = None  # set by insights-analytics-collector
-        self.until = None  # set by insights-analytics-collector
+        self.since = None  # set by Collector._create_collections()
+        self.until = None  # set by Collector._create_collections()
 
         self.gathering_started_at = None
         self.gathering_finished_at = None
@@ -62,7 +62,7 @@ class Collection:
             self.logger.exception(f"Could not generate metric {self.filename}: {e}")
             self.gathering_successful = False
         finally:
-            self.gathering_finished_at = now()
+            self._set_gathering_finished()
 
     @abstractmethod
     def is_empty(self):
@@ -125,3 +125,7 @@ class Collection:
     @abstractmethod
     def _save_gathering(self, data):
         pass
+
+    def _set_gathering_finished(self):
+        self.gathering_finished_at = now()
+

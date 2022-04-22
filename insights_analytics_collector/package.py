@@ -35,8 +35,9 @@ class Package:
         self.collector = collector
         self.collections = []
         self.collection_keys = []
+        self.data_collection_status = self.collector.collection_data_status_class()(self.collector, self)
         self.logger = collector.logger
-        self.manifest = {}
+        self.manifest = collector.collection_manifest_class()(collector)
         self.processed = False
         self.shipping_successful = None
         self.tar_path = None
@@ -106,9 +107,11 @@ class Package:
                     self._collection_to_tar(f, collection)
 
                 self._config_to_tar(f)
+
+                self._data_collection_status_to_tar(f)
+
                 self._manifest_to_tar(f)
-                # TODO
-                # self._data_collection_status_to_tar(f)
+
 
                 self.tar_path = f.name
             return True
@@ -156,7 +159,7 @@ class Package:
         try:
             if not collection.is_empty():
                 collection.add_to_tar(tar)
-                self._update_manifest(collection)
+                self.manifest.add_collection(collection)
         except Exception as e:
             self.logger.exception(f"Could not generate metric {collection.filename}: {e}")
             return None
@@ -219,23 +222,24 @@ class Package:
         identity = base64.b64encode(json.dumps(identity).encode('utf8'))
         return identity
 
-    # TODO: duplicate with CollectionJSON's code
+    def _data_collection_status_to_tar(self, tar):
+        try:
+            self.data_collection_status.gather(None)
+            self.data_collection_status.add_to_tar(tar)
+            self.manifest.add_collection(self.data_collection_status)
+        except Exception as e:
+            self.logger.exception(f"Could not generate {self.data_collection_status.filename}: {e}")
+
     def _manifest_to_tar(self, tar):
         try:
-            buf = json.dumps(self.manifest).encode('utf-8')
-            info = tarfile.TarInfo('./manifest.json')
-            info.size = len(buf)
-            info.mtime = self.collector.gather_until.timestamp()
-            tar.addfile(info, fileobj=io.BytesIO(buf))
+            self.manifest.gather(None)
+            self.manifest.add_to_tar(tar)
+            self.add_collection(self.manifest)
         except Exception as e:
-            self.logger.exception(f"Could not generate manifest.json: {e}")
-            return None
+            self.logger.exception(f"Could not generate {self.manifest.filename}: {e}")
 
     def _payload_content_type(self):
         return self.PAYLOAD_CONTENT_TYPE
-
-    def _update_manifest(self, collection):
-        self.manifest[collection.filename] = collection.version
 
     def _tarname_base(self):
         timestamp = self.collector.gather_until

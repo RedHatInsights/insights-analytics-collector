@@ -9,6 +9,7 @@ import tarfile
 from django.conf import settings
 settings.configure(USE_TZ=True)
 
+
 @pytest.fixture
 def collector(mocker):
     collector = AnalyticsCollector(collector_module=tests.functional.collector_module,
@@ -119,7 +120,7 @@ def test_multiple_collections_multiple_tarballs(mocker, collector):
     collector._gather_cleanup()
 
 
-def test_manifest(collector):
+def test_manifest_and_status(collector):
     collector.collector_module = tests.functional.collector_module2
     tgz_files = collector.gather()
 
@@ -134,16 +135,43 @@ def test_manifest(collector):
         assert len(files.keys()) == 3 + _common_files_count()
 
         assert json.loads(files['./manifest.json'].read()) == {'config.json': '1.0',
+                                                               'data_collection_status.csv': '1.0',
                                                                'json1.json': '1.1',
                                                                'json2.json': '1.2',
                                                                'json3.json': '1.3'}
+
+        _assert_data_collection_status(files['./data_collection_status.csv'])
+
     collector._gather_cleanup()
+
+
+def _assert_data_collection_status(status_file):
+    lines = status_file.readlines()
+    files = ['json1.json', 'json2.json', 'json3.json']
+    assert len(lines) == len(files) + 1  # +1 == header
+
+    fieldnames = ['collection_start_timestamp', 'since', 'until', 'file_name', 'status', 'elapsed']
+    header = lines.pop(0)
+    assert _decode_csv_line(header) == fieldnames
+    for line in lines:
+        row = _decode_csv_line(line)
+        assert len(row) == len(fieldnames)
+        assert row[4] == 'ok'  # status
+        assert row[5] == '0'  # elapsed
+        files.pop(files.index(row[3]))
+
+    assert len(files) == 0
+
+
+def _decode_csv_line(line):
+    return line.decode('utf-8').replace("\r", "").replace("\n", "").split(',')
 
 
 def _assert_common_files(files):
     assert './config.json' in files.keys()
     assert './manifest.json' in files.keys()
+    assert './data_collection_status.csv' in files.keys()
 
 
 def _common_files_count():
-    return 2
+    return 3

@@ -1,6 +1,7 @@
 import os
 import copy
 from .collection import Collection
+from django.utils.timezone import now
 
 
 class CollectionCSV(Collection):
@@ -77,7 +78,6 @@ class CollectionCSV(Collection):
         Saves data (paths to CSV files).
         If there are more files, sub-collections are created
         """
-        # print(f"_save_gathering: {self.key} | {self.data_type} | {data} | {self.since} | {self.until}")
         if type(data) is list and len(data) > 1:
             for fpath in data:
                 sub_collection = copy.copy(self)
@@ -89,3 +89,9 @@ class CollectionCSV(Collection):
             self.data_filepath = data[0]
         elif type(data) is str:
             self.data_filepath = data
+
+    def _set_gathering_finished(self):
+        _now = now()
+        self.gathering_finished_at = _now
+        for sub_collection in self.sub_collections:
+            sub_collection.gathering_finished_at = _now
