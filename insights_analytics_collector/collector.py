@@ -14,6 +14,8 @@ from .package import Package
 from .collection import Collection
 from .collection_csv import CollectionCSV
 from .collection_json import CollectionJSON
+from .collection_manifest import CollectionManifest
+from .collection_data_status import CollectionDataStatus
 
 
 class Collector:
@@ -487,6 +489,14 @@ class Collector:
     def _collection_csv_class():
         """Can be redefined by your CollectionCSV implementation"""
         return CollectionCSV
+
+    @staticmethod
+    def collection_data_status_class():
+        return CollectionDataStatus
+
+    @staticmethod
+    def collection_manifest_class():
+        return CollectionManifest
 
     def _reset_collections_and_packages(self):
         self.collections = {
