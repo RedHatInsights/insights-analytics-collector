@@ -23,6 +23,10 @@ class Package:
 
     SHIPPING_AUTH_USERPASS = 'user-pass'
     SHIPPING_AUTH_IDENTITY = 'x-rh-identity'  # Development mode only
+    SHIPPING_AUTH_CERTIFICATES = 'mutual-tls' # Mutual TLS
+
+    DEFAULT_RHSM_CERT_FILE = '/etc/pki/consumer/cert.pem'
+    DEFAULT_RHSM_KEY_FILE = '/etc/pki/consumer/key.pem'
 
     '''
     Some tables can be *very* large, and we have a 100MB upload limit.
@@ -132,6 +136,11 @@ class Package:
         with open(self.tar_path, 'rb') as f:
             files = {'file': (os.path.basename(self.tar_path), f, self._payload_content_type())}
             s = requests.Session()
+            if self.shipping_auth_mode() == self.SHIPPING_AUTH_CERTIFICATES:
+                # as a single file (containing the private key and the certificate) or
+                # as a tuple of both files paths (cert_file, keyfile)
+                s.cert =  self._get_client_certificates()
+
             s.headers = self._get_http_request_headers()
             s.headers.pop('Content-Type')
 
@@ -213,6 +222,14 @@ class Package:
 
         pass
 
+    @abstractmethod
+    def _get_client_certificates(self):
+        """Auth: get client certificate and key, by default we use the RHSM certs
+        :return: string or tuple of 2 strings
+        """
+        return (self.DEFAULT_RHSM_CERT_FILE, self.DEFAULT_RHSM_KEY_FILE)
+
+    @abstractmethod
     def _get_x_rh_identity(self):
         """Auth: x-rh-identity header for HTTP POST request to cloud
         Optional, if shipping_auth_mode() redefined to SHIPPING_AUTH_IDENTITY
