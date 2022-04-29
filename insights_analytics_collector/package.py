@@ -222,14 +222,12 @@ class Package:
 
         pass
 
-    @abstractmethod
     def _get_client_certificates(self):
         """Auth: get client certificate and key, by default we use the RHSM certs
         :return: string or tuple of 2 strings
         """
         return (self.DEFAULT_RHSM_CERT_FILE, self.DEFAULT_RHSM_KEY_FILE)
 
-    @abstractmethod
     def _get_x_rh_identity(self):
         """Auth: x-rh-identity header for HTTP POST request to cloud
         Optional, if shipping_auth_mode() redefined to SHIPPING_AUTH_IDENTITY
