@@ -409,7 +409,7 @@ class Collector:
             for package in packages:
                 package.update_last_gathered_entries(last_gathered_updates)
 
-        self.last_gathered_entries.update(last_gathered_updates)
+        self.last_gathered_entries.update(last_gathered_updates['keys'])
 
         self._save_last_gathered_entries(self.last_gathered_entries)
 
