@@ -2,6 +2,10 @@ import os
 from insights_analytics_collector import CsvFileSplitter, register
 
 
+def trivial_slicing(key, since, until, last_gather):
+    return [(since, until)]
+
+
 @register('config', '1.0', description='CONFIG', config=True)
 def config(since, **kwargs):
     return {
@@ -32,6 +36,16 @@ def csv_collection_2(full_path, max_data_size, **kwargs):
 @register('csv_collection_3', '1.0', format='csv', description='CSV 3')
 def csv_collection_3(full_path, max_data_size, **kwargs):
     return _simple_csv(full_path, 'csv_collection_3', 1, max_data_size=300)
+
+
+@register('csv_slicing_1', '1.0', format='csv', description='CSV with slicing 1', fnc_slicing=trivial_slicing)
+def csv_slicing_1(full_path, max_data_size, **kwargs):
+    return _simple_csv(full_path, 'csv_slicing_1', 1, max_data_size=100)
+
+
+@register('csv_slicing_2', '1.0', format='csv', description='CSV with slicing 2', fnc_slicing=trivial_slicing)
+def csv_slicing_2(full_path, max_data_size, **kwargs):
+    return _simple_csv(full_path, 'csv_slicing_2', 2, max_data_size=100)
 
 
 @register('json_collection_1', '1.0', format='json', description='JSON 1')
