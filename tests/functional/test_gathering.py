@@ -72,6 +72,29 @@ def test_small_csvs(collector):
     collector._gather_cleanup()
 
 
+def test_jsons_with_csvs_with_slicing(collector):
+    tgz_files = collector.gather(
+        subset=['config', 'json_collection_1', 'json_collection_2', 'csv_slicing_1', 'csv_slicing_2'])
+
+    assert len(tgz_files) == 3
+
+    for i in range(len(tgz_files)):
+        files = {}
+        with tarfile.open(tgz_files[i], "r:gz") as archive:
+            for member in archive.getmembers():
+                files[member.name] = archive.extractfile(member)
+
+            _assert_common_files(files)
+            if i == 0:
+                assert './json_collection_1.json' in files.keys()
+                assert './json_collection_2.json' in files.keys()
+                assert './csv_slicing_1.csv' in files.keys()
+            if i == 1:
+                assert './csv_slicing_2.csv' in files.keys()
+            if i == 2:
+                assert './csv_slicing_2.csv' in files.keys()
+
+
 def test_one_csv_collection_splitted_by_size(collector):
     tgz_files = collector.gather(subset=['config', 'big_table'])
 
