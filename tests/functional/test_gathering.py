@@ -1,6 +1,7 @@
 from tests.classes.analytics_collector import AnalyticsCollector
 import tests.functional.collector_module
 import tests.functional.collector_module2
+import tests.functional.collector_module3
 import json
 import logging
 import pytest
@@ -142,6 +143,71 @@ def test_multiple_collections_multiple_tarballs(mocker, collector):
 
     collector._gather_cleanup()
 
+
+def test_multiple_collections_and_distributions(collector):
+    """
+    - JSONs start at index 0
+    - CSVs with no slicing start at index 0
+    - CSVs with slicing start after index next to previous slice
+    """
+    collector.collector_module = tests.functional.collector_module3
+    tgz_files = collector.gather()
+
+    assert len(tgz_files) == 13
+
+    for i in range(len(tgz_files)):
+        files = {}
+        with tarfile.open(tgz_files[i], "r:gz") as archive:
+            for member in archive.getmembers():
+                files[member.name] = archive.extractfile(member)
+
+            _assert_common_files(files)
+            if i == 0:
+                assert './simple_json1.json' in files.keys()
+            else:
+                assert './simple_json1.json' not in files.keys()
+
+            # CSVs with no slicing start at index 0
+            if 0 <= i <= 1:
+                assert './csv_no_slicing_1-2x.csv' in files.keys()
+            else:
+                assert './csv_no_slicing_1-2x.csv' not in files.keys()
+
+            if i == 0:
+                assert './csv_no_slicing_2-1x.csv' in files.keys()
+            else:
+                assert './csv_no_slicing_2-1x.csv' not in files.keys()
+
+            if 0 <= i <= 9:
+                assert './csv_no_slicing_3-10x.csv' in files.keys()
+            else:
+                assert './csv_no_slicing_3-10x.csv' not in files.keys()
+
+            if 0 <= i <= 11:
+                assert './csv_no_slicing_4-12x.csv' in files.keys()
+            else:
+                assert './csv_no_slicing_4-12x.csv' not in files.keys()
+
+            # CSVs with slicing start after index next to previous slice
+            if 0 <= i <= 4:
+                assert './csv_with_slicing_1-5x.csv' in files.keys()
+            else:
+                assert './csv_with_slicing_1-5x.csv' not in files.keys()
+
+            if 5 <= i <= 7:
+                assert './csv_with_slicing_2-3x.csv' in files.keys()
+            else:
+                assert './csv_with_slicing_2-3x.csv' not in files.keys()
+
+            if 8 <= i <= 9:
+                assert './csv_with_slicing_3-2x.csv' in files.keys()
+            else:
+                assert './csv_with_slicing_3-2x.csv' not in files.keys()
+
+            if 10 <= i <= 12:
+                assert './csv_with_slicing_4-3x.csv' in files.keys()
+            else:
+                assert './csv_with_slicing_4-3x.csv' not in files.keys()
 
 def test_manifest_and_status(collector):
     collector.collector_module = tests.functional.collector_module2

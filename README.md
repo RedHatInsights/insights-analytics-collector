@@ -15,7 +15,11 @@ By Classes:
   - functions with `@register` decorator, one with `config=True, format='json'`
   - slicing functions (optional) for splitting large data (db tables) by time intervals
 
-## Implement Collector 
+## Collector
+
+Entrypoint with "gather()" method. 
+
+### Implementation
 
 Collector is an Abstract class, implement abstract methods.
 
@@ -30,7 +34,41 @@ Collector is an Abstract class, implement abstract methods.
 
 An example can be found in [Test collector](tests/classes/analytics_collector.py)
 
-## Implement Package
+## Package
+
+One package represents one `.tar.gz` file which will be uploaded to Analytics.
+Registered collectors are placed to collections as JSON/CSV files this way:
+
+- Upload limit is 100MB. The maximum bytes of uncompressed data is MAX_DATA_SIZE (by guess 200MB, redefine if needed)
+- JSON collectors are processed first, it's not expected they'll exceed this size
+  - if yes, use CSV format instead
+- CSV files can be collected in two modes:
+  - with slicing function 
+    - splitting data by custom function - usually time interval
+    - the purpose is to have reasonable SQL query in big databases
+    - `@register(fnc_slicing=...)`
+  - without slicing function
+  - 
+- CSV files are expected to be large (db data), so they can be split by `CsvFileSplitter` in the collector function.
+
+How are files included into packages:
+- JSON files are in first package
+- CSVs without slicing are included to first free package with enough size (can be added to JSON files)
+  - if function collects i.e. 900MB, it's sent in first 5 packages
+  - two functions cannot have the same name in `@register()` decorator
+- CSVs with slicing are sent after each slice is collected (with respect to smaller volume size if running in OpenShift/docker)
+  - each slice can be also split by CsvFileSplitter, if bigger than MAX_DATA_SIZE
+    - then each part of slice is sent immediately
+  - two functions can have the same name in `@register()` decorator
+
+Number of packages (tarballs) is bigger of:
+- number of files collected by one biggest registered CSV collector without slicing
+- number of files collected by all registered CSV collectors with slicing
+- can be +1 for JSON files
+
+See the [test_gathering.py](tests/functional/test_gathering.py) for details
+
+### Implementation
 
 Package is also abstract class. You have to implement basically info for POST request to cloud.
 
