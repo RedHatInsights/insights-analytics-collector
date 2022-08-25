@@ -16,6 +16,8 @@ class Package:
     - CERT_PATH - path to auth certificate (for POST request to cloud), if not development mode
     - PAYLOAD_CONTENT_TYPE - registered in ingress-service in cloud
     - MAX_DATA_SIZE - defaults to 200MB (upload limit is 100MB, so it expects 50% compression rate)
+
+    See the README.md and tests/functional/test_gathering.py to see how are packages used
     """
 
     CERT_PATH = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
