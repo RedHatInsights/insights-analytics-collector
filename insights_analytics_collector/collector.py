@@ -46,7 +46,9 @@ class Collector:
     def __init__(self,
                  collection_type=DRY_RUN,
                  collector_module=None,
-                 logger=None):
+                 logger=None,
+                 licensed=True):
+        self.licensed = licensed
         self.collector_module = collector_module
         self.collection_type = collection_type
         self.collections = {}
@@ -141,7 +143,7 @@ class Collector:
 
     def is_enabled(self):
         """Checks for license and shipping data (like credentials)"""
-        if not self._is_valid_license():
+        if not self._is_valid_license() and self.licensed:
             self.logger.log(self.log_level, "Invalid License provided, or No License Provided")
             return False
 
