@@ -24,6 +24,7 @@ class Package:
     PAYLOAD_CONTENT_TYPE = "application/vnd.redhat.TODO+tgz"  # i.e. "application/vnd.redhat.tower.tower_payload+tgz"
 
     SHIPPING_AUTH_USERPASS = 'user-pass'
+    SHIPPING_AUTH_S3_USERPASS = 'user-pass-s3'
     SHIPPING_AUTH_IDENTITY = 'x-rh-identity'  # Development mode only
     SHIPPING_AUTH_CERTIFICATES = 'mutual-tls' # Mutual TLS
 
@@ -70,6 +71,11 @@ class Package:
         """URL of cloud's upload URL"""
         pass
 
+    @abstractmethod
+    def get_s3_configured(self):
+        """URL of cloud's upload URL"""
+        pass
+
     def has_free_space(self, requested_size):
         return self.total_data_size + requested_size <= self.max_data_size()
 
@@ -84,12 +90,12 @@ class Package:
 
         if "Error:" in str(self.tar_path):
             return False
-
-        if not self.get_ingress_url():
-            self.logger.error('AUTOMATION_ANALYTICS_URL is not set')
-            return False
-
+        
         if self.shipping_auth_mode() == self.SHIPPING_AUTH_USERPASS:
+            if not self.get_ingress_url():
+                self.logger.error('AUTOMATION_ANALYTICS_URL is not set')
+                return False
+
             if not self._get_rh_user():
                 self.logger.error('REDHAT_USERNAME is not set')
                 return False
@@ -97,6 +103,27 @@ class Package:
             if not self._get_rh_password():
                 self.logger.error('REDHAT_PASSWORD is not set')
                 return False
+
+        if self.shipping_auth_mode() == self.SHIPPING_AUTH_S3_USERPASS:
+            if not self.get_s3_configured():
+                self.logger.error('S3 configuration is not set')
+                return False
+
+            if not self._get_rh_user():
+                self.logger.error('S3_KEY_ID is not set')
+                return False
+
+            if not self._get_rh_password():
+                self.logger.error('S3_SECRET_KEY is not set')
+                return False 
+            
+            if not self._get_rh_region():
+                self.logger.error('S3_REGION is not set')
+                return False 
+            
+            if not self._get_rh_bucket():
+                self.logger.error('S3_BUCKET is not set')
+                return False 
 
         return True
 
