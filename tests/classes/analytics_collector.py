@@ -28,4 +28,3 @@ class AnalyticsCollector(Collector):
 
     def _save_last_gather(self):
         return None
-

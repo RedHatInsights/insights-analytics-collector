@@ -6,9 +6,10 @@ class Collection:
     """Wrapper for gathering function from Collector.collector_module
     Functions decorated with @register are wrapped by kind of this object.
     """
-    COLLECTION_TYPE_CONFIG = 'config'
-    COLLECTION_TYPE_JSON = 'json'
-    COLLECTION_TYPE_CSV = 'csv'
+
+    COLLECTION_TYPE_CONFIG = "config"
+    COLLECTION_TYPE_JSON = "json"
+    COLLECTION_TYPE_CSV = "csv"
 
     def __init__(self, collector, fnc_collecting):
         self.collector = collector
@@ -17,20 +18,21 @@ class Collection:
         self.fnc_slicing = fnc_collecting.__insights_analytics_fnc_slicing__
         self.is_config = fnc_collecting.__insights_analytics_config__
 
-        self.description = fnc_collecting.__insights_analytics_description__ or ''
+        self.description = fnc_collecting.__insights_analytics_description__ or ""
         self.key = fnc_collecting.__insights_analytics_key__
         self.shipping_group = fnc_collecting.__insights_analytics_shipping_group__
         self.version = fnc_collecting.__insights_analytics_version__
 
         self.data_type = fnc_collecting.__insights_analytics_type__
-        self.filename = f'{self.key}.{self.data_type}'
+        self.filename = f"{self.key}.{self.data_type}"
         self.since = None  # set by Collector._create_collections()
         self.until = None  # set by Collector._create_collections()
 
         self.gathering_started_at = None
         self.gathering_finished_at = None
         self.gathering_successful = None
-        self.last_gathered_entry = self.collector.last_gathered_entry_for(self.key)
+        self.last_gathered_entry = self.collector.last_gathered_entry_for(
+            self.key)
 
     @abstractmethod
     def add_to_tar(self, tar):
@@ -50,16 +52,19 @@ class Collection:
         try:
             # More collections with the same key (and different since/until)
             # have the same file names => overwriting! [error]
-            result = self.fnc_collecting(since=self.since,
-                                         until=self.until,
-                                         max_data_size=max_data_size,
-                                         full_path=self.collector.gather_dir,
-                                         collection_type=self.collector.collection_type)
+            result = self.fnc_collecting(
+                since=self.since,
+                until=self.until,
+                max_data_size=max_data_size,
+                full_path=self.collector.gather_dir,
+                collection_type=self.collector.collection_type,
+            )
             self._save_gathering(result)
 
             self.gathering_successful = True
         except Exception as e:
-            self.logger.exception(f"Could not generate metric {self.filename}: {e}")
+            self.logger.exception(
+                f"Could not generate metric {self.filename}: {e}")
             self.gathering_successful = False
         finally:
             self._set_gathering_finished()
@@ -78,8 +83,7 @@ class Collection:
         if self.fnc_slicing:
             slices = self.fnc_slicing(self.key, since, until, last_gather)
         else:
-            slices = [(self._gather_since(),
-                       self._gather_until())]
+            slices = [(self._gather_since(), self._gather_until())]
 
         return slices
 
@@ -97,25 +101,27 @@ class Collection:
         pass
 
     def update_last_gathered_entries(self, updates_dict):
-        if self.key in updates_dict['locked']:
+        if self.key in updates_dict["locked"]:
             return
 
         if self.gathering_successful:
-            previous = updates_dict['keys'].get(self.key, None)
+            previous = updates_dict["keys"].get(self.key, None)
             if previous is None:
-                updates_dict['keys'][self.key] = self.until
+                updates_dict["keys"][self.key] = self.until
             else:
-                updates_dict['keys'][self.key] = max(previous, self.until)
+                updates_dict["keys"][self.key] = max(previous, self.until)
         else:
-            updates_dict['locked'].add(self.key)
+            updates_dict["locked"].add(self.key)
 
     #
     # Private methods ---------------------------
     #
     def _gather_since(self):
         """Start of gathering based on settings excluding slices"""
-        last_entry = max(self.last_gathered_entry or self.collector.last_gather,
-                         self.collector.gather_until - timedelta(weeks=4))
+        last_entry = max(
+            self.last_gathered_entry or self.collector.last_gather,
+            self.collector.gather_until - timedelta(weeks=4),
+        )
         return self.collector.gather_since or last_entry
 
     def _gather_until(self):
@@ -128,4 +134,3 @@ class Collection:
 
     def _set_gathering_finished(self):
         self.gathering_finished_at = now()
-

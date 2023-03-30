@@ -11,6 +11,7 @@ class CollectionCSV(Collection):
     - In case of multiple files, object clones itself to sub-collections,
       one for each file
     """
+
     def __init__(self, collector, fnc_collecting):
         super().__init__(collector, fnc_collecting)
         # Large db tables handled by fnc_collecting can be split to multiple files,
@@ -20,8 +21,10 @@ class CollectionCSV(Collection):
 
     def add_to_tar(self, tar):
         """Adds CSV file to the tar(tgz) archive"""
-        self.logger.debug(f"CollectionCSV._add_to_tar: | {self.key}.csv | Size: {self.data_size()}")
-        tar.add(self.target(), arcname=f'./{self.filename}')
+        self.logger.debug(
+            f"CollectionCSV._add_to_tar: | {self.key}.csv | Size: {self.data_size()}"
+        )
+        tar.add(self.target(), arcname=f"./{self.filename}")
 
     def cleanup(self):
         """Removes CSV files from /tmp"""
@@ -78,16 +81,16 @@ class CollectionCSV(Collection):
         Saves data (paths to CSV files).
         If there are more files, sub-collections are created
         """
-        if type(data) is list and len(data) > 1:
+        if isinstance(data, list) and len(data) > 1:
             for fpath in data:
                 sub_collection = copy.copy(self)
                 sub_collection.sub_collections = []
                 sub_collection.data_filepath = fpath
                 sub_collection.gathering_successful = True
                 self.sub_collections.append(sub_collection)
-        elif type(data) is list and len(data) == 1:
+        elif isinstance(data, list) and len(data) == 1:
             self.data_filepath = data[0]
-        elif type(data) is str:
+        elif isinstance(data, str):
             self.data_filepath = data
 
     def _set_gathering_finished(self):
