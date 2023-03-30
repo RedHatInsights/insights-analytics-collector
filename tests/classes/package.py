@@ -13,14 +13,13 @@ class Package(InsightsAnalyticsPackage):
         return None
 
     def _get_rh_user(self):
-        return ''
+        return ""
 
     def _get_rh_password(self):
-        return ''
+        return ""
 
     def _get_x_rh_identity(self):
-        return ''
+        return ""
 
     def _get_http_request_headers(self):
         return {}
-

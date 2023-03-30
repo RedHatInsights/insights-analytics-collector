@@ -1,7 +1,12 @@
-def register(key, version, description=None,
-             format='json', config=False,
-             fnc_slicing=None,
-             shipping_group='default'):
+def register(
+    key,
+    version,
+    description=None,
+    format="json",
+    config=False,
+    fnc_slicing=None,
+    shipping_group="default",
+):
     """
     A decorator used to register a function as a metric collector.
 
