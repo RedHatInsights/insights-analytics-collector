@@ -1,4 +1,5 @@
 import os
+
 from insights_analytics_collector import CsvFileSplitter
 
 
@@ -14,11 +15,11 @@ def simple_csv(full_path, file_name, files_cnt, max_data_size):
 
     # create required number of files (decrease by headers - it's CSV)
     file.write(header)
-    for _ in range(files_cnt * int(max_data_size/10) - files_cnt):
+    for _ in range(files_cnt * int(max_data_size / 10) - files_cnt):
         file.write(line)
 
     return file.file_list()
 
 
 def get_file_path(path, table):
-    return os.path.join(path, table + '_table.csv')
+    return os.path.join(path, table + "_table.csv")
