@@ -4,6 +4,12 @@ name: CICD
 on:
   pull_request:
   push:
+  workflow_call:
+    inputs:
+      validate-all:
+        required: false
+        type: boolean
+        default: false
   
 jobs:
   static-analysis:
@@ -25,6 +31,7 @@ jobs:
       - name: Lint Code Base
         uses: github/super-linter@v4
         env:
+          VALIDATE_GITHUB_ACTIONS: false
           VALIDATE_ALL_CODEBASE: ${{ inputs.validate-all }}
           VALIDATE_MARKDOWN: false
           VALIDATE_PYTHON_MYPY: false
