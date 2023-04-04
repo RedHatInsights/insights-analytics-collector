@@ -6,7 +6,7 @@
   "ignore": [
     "**/__snapshots__/**",
     "**.html",
-    "**/tests/**
+    "**/tests/**"
   ],
   "absolute": true
 }
