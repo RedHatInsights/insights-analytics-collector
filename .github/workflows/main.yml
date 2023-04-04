@@ -1,5 +1,5 @@
 ---
-name: DISPATCH
+name: CICD
 
 on:
   pull_request:
