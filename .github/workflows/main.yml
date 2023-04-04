@@ -24,9 +24,8 @@ jobs:
       - name: Configure linters
         run : |-
           # echo "disable=SC2086" > ~/.shellcheckrc
-          # mkdir -vp .github/linters/config/
-          #curl -o .github/linters/config/rubocop.yml https://raw.githubusercontent.com/dmzoneill/dmzoneill/main/.github/linters/config/rubocop.yml
-          echo "Do nothing, or provide linter config, exmaple above"
+          mkdir -vp .github/linters/config/
+          curl -o .github/linters/config/.jscpd.json https://raw.githubusercontent.com/RedHatInsights/insights-analytics-collector/main/.github/linters/.jscpd.json
 
       - name: Lint Code Base
         uses: github/super-linter@v4
