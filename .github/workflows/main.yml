@@ -1,0 +1,51 @@
+---
+name: DISPATCH
+
+on:
+  pull_request:
+  push:
+  
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    name: Validate code
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      - name: Configure linters
+        run : |-
+          # echo "disable=SC2086" > ~/.shellcheckrc
+          # mkdir -vp .github/linters/config/
+          #curl -o .github/linters/config/rubocop.yml https://raw.githubusercontent.com/dmzoneill/dmzoneill/main/.github/linters/config/rubocop.yml
+          echo "Do nothing, or provide linter config, exmaple above"
+
+      - name: Lint Code Base
+        uses: github/super-linter@v4
+        env:
+          VALIDATE_ALL_CODEBASE: ${{ inputs.validate-all }}
+          VALIDATE_MARKDOWN: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_FLAKE8: false   
+          VALIDATE_NATURAL_LANGUAGE: false
+          DEFAULT_BRANCH: "main"
+          
+  unit-test:   
+    name: pytest
+    runs-on: ubuntu-latest    
+    needs: [static-analysis]
+    steps:
+      - name: Post action
+        run: |-
+          { cd tests; pytest -s -v . }
+
+  post-action:   
+    name: Do something
+    runs-on: ubuntu-latest    
+    needs: [unit-test]
+    steps:
+      - name: Post action
+        run: |-
+          echo "do something"
