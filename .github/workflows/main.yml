@@ -37,6 +37,7 @@ jobs:
           VALIDATE_PYTHON_FLAKE8: false   
           VALIDATE_NATURAL_LANGUAGE: false
           DEFAULT_BRANCH: "main"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
   unit-test:   
     name: pytest
