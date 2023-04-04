@@ -46,7 +46,7 @@ jobs:
     steps:
       - name: Post action
         run: |-
-          { cd tests; pytest -s -v . }
+          pytest -s -v tests/
 
   post-action:   
     name: Do something
