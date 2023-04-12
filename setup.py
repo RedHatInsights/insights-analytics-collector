@@ -31,5 +31,5 @@ setup(
     packages=find_packages(),
     include_package_data=False,
     install_requires=["django", "requests"],
-    tests_require=["pytest", "pytest-mock"],
+    tests_require=["pytest", "pytest-mock", "pytz"],
 )

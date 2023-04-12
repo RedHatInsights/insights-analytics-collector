@@ -434,6 +434,11 @@ class Collector:
             for package in packages:
                 package.update_last_gathered_entries(last_gathered_updates)
 
+        # Locked key means that gathering wasn't successful at least once.
+        # Full sync timestamp can't be updated (if present)
+        for unsuccessful_key in last_gathered_updates["locked"]:
+            last_gathered_updates.pop(f"{unsuccessful_key}_full", None)
+
         self.last_gathered_entries.update(last_gathered_updates["keys"])
 
         self._save_last_gathered_entries(self.last_gathered_entries)
