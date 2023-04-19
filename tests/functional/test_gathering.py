@@ -6,10 +6,8 @@ import pytest
 import tests.functional.collector_module
 import tests.functional.collector_module2
 import tests.functional.collector_module3
-from django.conf import settings
 from tests.classes.analytics_collector import AnalyticsCollector
-
-settings.configure(USE_TZ=True)
+from tests.functional.helpers import assert_common_files, decode_csv_line
 
 
 @pytest.fixture
@@ -46,7 +44,7 @@ def test_json_collections(collector):
         for member in archive.getmembers():
             files[member.name] = archive.extractfile(member)
 
-        _assert_common_files(files)
+        assert_common_files(files)
         assert "./json_collection_1.json" in files.keys()
         assert "./json_collection_2.json" in files.keys()
 
@@ -69,7 +67,7 @@ def test_small_csvs(collector):
         for member in archive.getmembers():
             files[member.name] = archive.extractfile(member)
 
-        _assert_common_files(files)
+        assert_common_files(files)
         assert "./csv_collection_1.csv" in files.keys()
         assert "./csv_collection_2.csv" in files.keys()
         assert "./csv_collection_3.csv" in files.keys()
@@ -101,7 +99,7 @@ def test_jsons_with_csvs_with_slicing(collector):
             for member in archive.getmembers():
                 files[member.name] = archive.extractfile(member)
 
-            _assert_common_files(files)
+            assert_common_files(files)
             if i == 0:
                 assert "./json_collection_1.json" in files.keys()
                 assert "./json_collection_2.json" in files.keys()
@@ -123,7 +121,7 @@ def test_one_csv_collection_splitted_by_size(collector):
             for member in archive.getmembers():
                 files[member.name] = archive.extractfile(member)
 
-            _assert_common_files(files)
+            assert_common_files(files)
             assert len(files.keys()) == 1 + _common_files_count()
             assert "./big_table.csv" in files.keys()
             assert len(files["./big_table.csv"].read()) == 1000
@@ -146,7 +144,7 @@ def test_multiple_collections_multiple_tarballs(mocker, collector):
             for member in archive.getmembers():
                 files[member.name] = archive.extractfile(member)
 
-            _assert_common_files(files)
+            assert_common_files(files)
             if i == 0:
                 assert len(files.keys()) == 2 + _common_files_count()
                 assert "./big_table_2.csv" in files.keys()
@@ -179,7 +177,7 @@ def test_multiple_collections_and_distributions(collector):
             for member in archive.getmembers():
                 files[member.name] = archive.extractfile(member)
 
-            _assert_common_files(files)
+            assert_common_files(files)
             if i == 0:
                 assert "./simple_json1.json" in files.keys()
             else:
@@ -239,7 +237,7 @@ def test_manifest_and_status(collector):
         for member in archive.getmembers():
             files[member.name] = archive.extractfile(member)
 
-        _assert_common_files(files)
+        assert_common_files(files)
         assert len(files.keys()) == 3 + _common_files_count()
 
         assert json.loads(files["./manifest.json"].read()) == {
@@ -269,25 +267,15 @@ def _assert_data_collection_status(status_file):
         "elapsed",
     ]
     header = lines.pop(0)
-    assert _decode_csv_line(header) == fieldnames
+    assert decode_csv_line(header) == fieldnames
     for line in lines:
-        row = _decode_csv_line(line)
+        row = decode_csv_line(line)
         assert len(row) == len(fieldnames)
         assert row[4] == "ok"  # status
         assert row[5] == "0"  # elapsed
         files.pop(files.index(row[3]))
 
     assert len(files) == 0
-
-
-def _decode_csv_line(line):
-    return line.decode("utf-8").replace("\r", "").replace("\n", "").split(",")
-
-
-def _assert_common_files(files):
-    assert "./config.json" in files.keys()
-    assert "./manifest.json" in files.keys()
-    assert "./data_collection_status.csv" in files.keys()
 
 
 def _common_files_count():
