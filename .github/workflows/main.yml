@@ -75,7 +75,7 @@ jobs:
       - name: Bump
         if: steps.changes.outputs.src == 'true'
         run: |-
-          version=$(grep '__version__ = .*$' setup.py | sed 's/__version__ = "//' | sed '"//' )
+          version=$(grep '__version__ = .*' setup.py | sed 's/__version__ = \"//' | sed 's/"//')
           next=$(echo $version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.)
           sed "s/$version/$next/" -i setup.py
   
