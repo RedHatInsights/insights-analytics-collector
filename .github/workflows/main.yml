@@ -62,3 +62,57 @@ jobs:
       - name: Post action
         run: |-
           echo "do something"
+
+  pypi-bump-version:
+    name: PyPI bump version
+    needs: [static-analysis, unit-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Filter
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '*/**'
+              - 'setup.py'
+              - 'pyproject.toml'
+              
+      - name: Bump
+        if: steps.changes.outputs.src == 'true'
+        run: |-
+          version=$(grep '__version__ = .*$' setup.py | sed 's/__version__ = "//' | sed '"//' )
+          next=$(echo $version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.)
+          sed "s/$version/$next/" -i setup.py
+  
+      - name: Push changes
+        if: steps.changes.outputs.src == 'true'
+        uses: mikeal/publish-to-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: 'main' #optional defaults to master
+
+  pypi-build-and-upload-package:
+    name: Pypi module build
+    needs: pypi-bump-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+     
+      - name: Build
+        run: |-
+          pip3 install trove-classifiers ptyprocess msgpack lockfile distlib tomlkit tomli shellingham rapidfuzz pyrsistent poetry-core platformdirs pkginfo pexpect packaging jeepney jaraco.classes filelock dulwich crashtest cachecontrol virtualenv SecretStorage jsonschema cleo keyring poetry-plugin-export poetry bumpver
+          python3 -m pip install --upgrade build
+          python3 -m pip install --upgrade twine
+          python3 -m build
+    
+      - name: Upload step
+        run: |-
+          # shellcheck disable=SC2035
+          printf "[pypi]\n  username = __token__\n  password = ${{ secrets.PYPI }}" > ~/.pypirc
+          # shellcheck disable=SC2035
+          python3 -m twine upload --verbose --non-interactive --config-file ~/.pypirc --repository pypi dist/*
